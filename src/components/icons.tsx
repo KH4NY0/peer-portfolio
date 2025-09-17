@@ -49,3 +49,18 @@ export const IconUser = (props: React.SVGProps<SVGSVGElement>) => (
     <path d="M4 20c2-3 6-4 8-4s6 1 8 4"/>
   </svg>
 );
+
+export const IconMenu = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...props}>
+    <path d="M3 6h18"/>
+    <path d="M3 12h18"/>
+    <path d="M3 18h18"/>
+  </svg>
+);
+
+export const IconX = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...props}>
+    <path d="M6 6l12 12"/>
+    <path d="M18 6l-12 12"/>
+  </svg>
+);
