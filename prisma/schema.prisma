@@ -1,0 +1,184 @@
+// Prisma schema for Peer Portfolio platform
+// Database: Postgres for local development
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Enums ---
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  PDF
+  OTHER
+}
+
+enum SubmissionCategory {
+  ART
+  DESIGN
+  MUSIC
+  PHOTOGRAPHY
+  WRITING
+  OTHER
+}
+
+// --- Core Models ---
+
+model User {
+  id           String           @id @default(cuid())
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  // Profile fields
+  name         String?
+  username     String?          @unique
+  email        String?          @unique
+  emailVerified DateTime?
+  image        String?
+  bio          String?
+  clerkId      String?          @unique
+
+  // Relations
+  submissions  Submission[]
+  reviews      Review[]
+  comments     ReviewComment[]
+
+  followers    Follow[]         @relation("followers")
+  following    Follow[]         @relation("following")
+
+  badges       BadgeOnUser[]
+  reviewerStat ReviewerStat?
+}
+
+model Submission {
+  id                 String        @id @default(cuid())
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  title              String
+  description        String?
+  category           SubmissionCategory?
+
+  authorId           String
+  author             User          @relation(fields: [authorId], references: [id])
+
+  assets             MediaAsset[]
+  reviews            Review[]
+
+  // Cached aggregates (optional, can be computed dynamically)
+  reviewCount        Int           @default(0)
+  avgCreativity      Float         @default(0)
+  avgTechnique       Float         @default(0)
+  avgPresentation    Float         @default(0)
+}
+
+model MediaAsset {
+  id            String     @id @default(cuid())
+  createdAt     DateTime   @default(now())
+
+  submissionId  String
+  submission    Submission @relation(fields: [submissionId], references: [id])
+
+  url           String
+  type          MediaType
+  mimeType      String?
+  width         Int?
+  height        Int?
+  durationSec   Int?
+  sizeBytes     Int?
+}
+
+model Review {
+  id             String          @id @default(cuid())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  submissionId   String
+  submission     Submission      @relation(fields: [submissionId], references: [id])
+
+  reviewerId     String
+  reviewer       User            @relation(fields: [reviewerId], references: [id])
+
+  // Structured ratings (1-5)
+  creativity     Int
+  technique      Int
+  presentation   Int
+
+  // Written feedback
+  comment        String?
+
+  comments       ReviewComment[]
+
+  @@unique([submissionId, reviewerId]) // one review per submission per reviewer
+}
+
+model ReviewComment {
+  id         String         @id @default(cuid())
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  reviewId   String
+  review     Review         @relation(fields: [reviewId], references: [id])
+
+  authorId   String
+  author     User           @relation(fields: [authorId], references: [id])
+
+  content    String
+
+  // Threaded replies
+  parentId   String?
+  parent     ReviewComment? @relation("CommentChildren", fields: [parentId], references: [id])
+  children   ReviewComment[] @relation("CommentChildren")
+}
+
+model Follow {
+  followerId String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower   User @relation("following", fields: [followerId], references: [id])
+  following  User @relation("followers", fields: [followingId], references: [id])
+
+  @@id([followerId, followingId])
+}
+
+// --- Leaderboard & Badges ---
+
+model ReviewerStat {
+  userId        String   @id
+  user          User     @relation(fields: [userId], references: [id])
+  totalReviews  Int      @default(0)
+  totalComments Int      @default(0)
+  score         Float    @default(0)
+  updatedAt     DateTime @updatedAt
+}
+
+model Badge {
+  id          String        @id @default(cuid())
+  createdAt   DateTime      @default(now())
+  name        String
+  slug        String        @unique
+  description String?
+  users       BadgeOnUser[]
+  // Optional: thresholdScore or custom rule IDs in future
+}
+
+model BadgeOnUser {
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+
+  user   User  @relation(fields: [userId], references: [id])
+  badge  Badge @relation(fields: [badgeId], references: [id])
+
+  @@id([userId, badgeId])
+}
+
+// NextAuth models removed in favor of Clerk

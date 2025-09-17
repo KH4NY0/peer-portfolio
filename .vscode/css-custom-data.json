@@ -1,0 +1,9 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    { "name": "@apply", "description": "Tailwind CSS: apply utilities to a CSS rule" },
+    { "name": "@theme", "description": "Tailwind CSS v4: define theme tokens mapped from CSS variables" },
+    { "name": "@layer", "description": "Tailwind CSS: declare a layer for base/components/utilities" },
+    { "name": "@tailwind", "description": "Tailwind CSS: inject layers (v2/v3)" }
+  ]
+}
