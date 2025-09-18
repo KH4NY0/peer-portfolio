@@ -1,64 +1,75 @@
-import { clerkMiddleware, type NextRequest } from "@clerk/nextjs/server";
-import { NextResponse } from 'next/server';
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse, type NextRequest } from 'next/server';
+
+// Development-specific configurations
+if (process.env.NODE_ENV === 'development') {
+  // Add clock skew handling
+  const originalDate = global.Date;
+  global.Date = class extends Date {
+    constructor() {
+      super();
+      // Add a 5-minute buffer to account for clock skew
+      return new originalDate(originalDate.now() + 1000 * 60 * 5);
+    }
+  } as DateConstructor;
+  
+  // Copy static methods
+  Object.assign(global.Date, originalDate);
+}
 
 // Define public routes that don't require authentication
 const publicRoutes = [
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/auth-error(.*)',
-  '/api/trpc/[trpc]',
-  '/api/webhooks(.*)',
+  '/api/trpc/(.*)',
+  '/api/webhooks/(.*)',
   '/_next/static(.*)',
   '/_next/image(.*)',
   '/favicon.ico',
 ];
 
+// Create a matcher for public routes
+const isPublicRoute = createRouteMatcher(publicRoutes);
+
 // Create the middleware
-export default clerkMiddleware(async (auth, req: NextRequest) => {
-  try {
-    const { userId, sessionClaims } = await auth();
-    const { pathname } = req.nextUrl;
+export default clerkMiddleware(async (auth, req) => {
+  // Get the session
+  const session = await auth();
+  const { pathname } = req.nextUrl;
 
-    // Skip middleware for public routes and static files
-    const isPublicRoute = publicRoutes.some(route => {
-      const regex = new RegExp(`^${route.replace(/\*/g, '.*')}$`);
-      return regex.test(pathname);
-    });
-
-    if (isPublicRoute || pathname.includes('.')) {
-      return NextResponse.next();
-    }
-
-    // Handle unauthenticated users
-    if (!userId) {
-      const signInUrl = new URL('/sign-in', req.url);
-      signInUrl.searchParams.set('redirect_url', pathname);
-      return NextResponse.redirect(signInUrl);
-    }
-
-    // Handle users without a username
-    if (!sessionClaims?.username && !pathname.startsWith('/account/username')) {
-      const usernameSetupUrl = new URL('/account/username', req.url);
-      usernameSetupUrl.searchParams.set('redirect_url', pathname);
-      return NextResponse.redirect(usernameSetupUrl);
-    }
-
+  // Skip middleware for public routes and static files
+  if (isPublicRoute(req) || pathname.includes('.')) {
     return NextResponse.next();
-  } catch (error) {
-    console.error('Authentication error:', error);
-    const errorUrl = new URL('/auth-error', req.url);
-    errorUrl.searchParams.set('error', 'authentication_error');
-    return NextResponse.redirect(errorUrl);
   }
+
+  // Handle unauthenticated users
+  if (!session.userId) {
+    const signInUrl = new URL('/sign-in', req.url);
+    signInUrl.searchParams.set('redirect_url', pathname);
+    return NextResponse.redirect(signInUrl);
+  }
+
+  // Get session claims
+  const sessionClaims = session.sessionClaims;
+  
+  // Handle users without a username
+  if (sessionClaims && !sessionClaims.username && !pathname.startsWith('/account/username')) {
+    const usernameSetupUrl = new URL('/account/username', req.url);
+    usernameSetupUrl.searchParams.set('redirect_url', pathname);
+    return NextResponse.redirect(usernameSetupUrl);
+  }
+
+  return NextResponse.next();
 });
 
-// Configure which routes to run middleware on
 export const config = {
   matcher: [
-    // Match all paths except for ones starting with _next or containing a dot (static files)
-    "/((?!.*\..*|_next).*)",
-    // Also match API routes
-    "/api/(.*)",
+    // Match all request paths except for the ones starting with:
+    // - _next/static (static files)
+    // - _next/image (image optimization files)
+    // - favicon.ico (favicon file)
+    '/((?!.*\..*|_next).*)',
+    '/',
   ],
 };

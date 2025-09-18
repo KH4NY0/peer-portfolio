@@ -18,34 +18,47 @@ async function uniqueUsernameFrom(baseRaw: string) {
 }
 
 export async function ensureDbUserFromClerk() {
-  const { userId } = await auth();
-  if (!userId) return null;
+  try {
+    // For server-side usage
+    if (typeof window === 'undefined') {
+      const { userId } = await auth();
+      if (!userId) return null;
 
-  let user = await prisma.user.findUnique({ where: { clerkId: userId } });
-  if (user) return user;
+      let user = await prisma.user.findUnique({ where: { clerkId: userId } });
+      if (user) return user;
 
-  const cu = await currentUser();
-  if (!cu) return null;
+      const cu = await currentUser();
+      if (!cu) return null;
 
-  const primaryEmail = cu.emailAddresses.find((e) => e.id === cu.primaryEmailAddressId)?.emailAddress || cu.emailAddresses[0]?.emailAddress || null;
-  const displayName = cu.username || [cu.firstName, cu.lastName].filter(Boolean).join(" ") || null;
-  const image = cu.imageUrl || null;
+      const primaryEmail = cu.emailAddresses.find((e) => e.id === cu.primaryEmailAddressId)?.emailAddress || cu.emailAddresses[0]?.emailAddress || null;
+      const displayName = cu.username || [cu.firstName, cu.lastName].filter(Boolean).join(" ") || null;
+      const image = cu.imageUrl || null;
 
-  // Generate username preference: Clerk username -> email local-part -> name
-  const baseRaw = cu.username || (primaryEmail ? primaryEmail.split("@")[0] : "") || displayName || "user";
-  const username = await uniqueUsernameFrom(baseRaw);
+      // Generate username preference: Clerk username -> email local-part -> name
+      const baseRaw = cu.username || (primaryEmail ? primaryEmail.split("@")[0] : "") || displayName || "user";
+      const username = await uniqueUsernameFrom(baseRaw);
 
-  user = await prisma.user.create({
-    data: {
-      clerkId: userId,
-      username,
-      name: displayName,
-      email: primaryEmail,
-      image,
-    },
-  });
+      user = await prisma.user.create({
+        data: {
+          clerkId: userId,
+          username,
+          name: displayName,
+          email: primaryEmail,
+          image,
+        },
+      });
 
-  return user;
+      return user;
+    } else {
+      // For client-side usage, fetch the current user via API
+      const response = await fetch('/api/auth/me');
+      if (!response.ok) return null;
+      return await response.json();
+    }
+  } catch (error) {
+    console.error('Error in ensureDbUserFromClerk:', error);
+    return null;
+  }
 }
 
 export async function getDbUserByClerk() {

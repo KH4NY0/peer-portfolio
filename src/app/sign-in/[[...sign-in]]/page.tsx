@@ -11,15 +11,17 @@ function SignInLoading() {
   );
 }
 
-export default async function SignInPage({
+export default function SignInPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   // Extract redirect_url safely
   const redirectUrl = (() => {
-    const url = searchParams.redirect_url;
-    return Array.isArray(url) ? url[0] : url;
+    if (typeof window === 'undefined') return undefined;
+    const params = new URLSearchParams(window.location.search);
+    const url = params.get('redirect_url');
+    return url || undefined;
   })();
 
   return (
