@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { MediaType, Prisma } from '@prisma/client';
+import { getAuth } from '@clerk/nextjs/server';
+import { updateBadgesForUser } from '@/lib/achievements';
 
 function toMediaTypeFromMime(mime?: string | null): MediaType {
   if (!mime) return MediaType.OTHER;
@@ -35,6 +37,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const { title, description, category, authorName, authorUsername, assets } = body || {};
@@ -79,6 +86,8 @@ export async function POST(req: NextRequest) {
       },
       include: { author: true, assets: true },
     });
+
+    await updateBadgesForUser(userId);
 
     return NextResponse.json({ submission: created }, { status: 201 });
   } catch (err) {

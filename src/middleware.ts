@@ -20,6 +20,7 @@ if (process.env.NODE_ENV === 'development') {
 // Define public routes that don't require authentication
 const publicRoutes = [
   '/',
+  '/api/upload',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/trpc/(.*)',
@@ -71,5 +72,6 @@ export const config = {
     // - favicon.ico (favicon file)
     '/((?!.*\..*|_next).*)',
     '/',
+    '/(api|trpc)(.*)',
   ],
 };

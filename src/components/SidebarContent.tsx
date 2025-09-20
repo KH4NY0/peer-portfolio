@@ -1,17 +1,18 @@
 "use client";
 import Link from "next/link";
 import { IconHome, IconTrend, IconTrophy, IconPlus, IconSearch, IconUser } from "@/components/icons";
+import { LayoutDashboard } from 'lucide-react';
 import AuthPanel from "./auth/AuthPanel";
+import SignOutButton from "./sign-out-button";
 
-export default function SidebarContent({
-  userId,
-  username,
-  onNavigate,
-}: {
+type SidebarContentProps = {
   userId: string | null;
   username: string | null;
+  signOut: () => void;
   onNavigate?: () => void;
-}) {
+};
+
+export default function SidebarContent({ userId, username, signOut, onNavigate }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full gap-3">
       {/* Brand */}
@@ -39,6 +40,7 @@ export default function SidebarContent({
       {/* Nav */}
       <nav className="px-2 space-y-1">
         <SidebarLink href="/" icon={IconHome} label="New" onNavigate={onNavigate} />
+        <SidebarLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" onNavigate={onNavigate} />
         <SidebarLink href="/trending" icon={IconTrend} label="Trending" onNavigate={onNavigate} />
         <SidebarLink href="/leaderboard" icon={IconTrophy} label="Leaderboard" onNavigate={onNavigate} />
         <SidebarLink href="/submit" icon={IconPlus} label="Submit" onNavigate={onNavigate} />
@@ -63,7 +65,10 @@ export default function SidebarContent({
             </Link>
           </div>
         ) : (
-          <AuthPanel username={username} />
+          <div className="space-y-3">
+            <AuthPanel username={username} />
+            <SignOutButton signOut={signOut} />
+          </div>
         )}
       </div>
     </div>

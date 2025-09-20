@@ -161,11 +161,11 @@ model ReviewerStat {
 }
 
 model Badge {
-  id          String        @id @default(cuid())
-  createdAt   DateTime      @default(now())
+  id          String    @id @default(cuid())
+  slug        String    @unique
   name        String
-  slug        String        @unique
   description String?
+  icon        String    @default("")
   users       BadgeOnUser[]
   // Optional: thresholdScore or custom rule IDs in future
 }

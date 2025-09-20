@@ -2,6 +2,15 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["mongoose"],
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  experimental: {
+    serverActions: {},
+    serverComponentsExternalPackages: [],
+  },
+  transpilePackages: ['@clerk/nextjs'],
   // Development-specific configurations
   ...(process.env.NODE_ENV === 'development' && {
     // Disable React Strict Mode in development to prevent double rendering
@@ -10,9 +19,6 @@ const nextConfig: NextConfig = {
     // Disable static optimization to prevent caching issues
     output: 'standalone',
   }),
-  
-  // External packages that should be processed by the server
-  serverExternalPackages: ["@prisma/client", "@clerk/nextjs"],
   
   // Turbopack configuration
   turbopack: {

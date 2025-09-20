@@ -4,13 +4,14 @@ import { prisma } from '@/lib/db';
 
 export async function GET() {
   try {
-    const { userId } = getAuth();
-    if (!userId) {
-      return new NextResponse('Unauthorized', { status: 401 });
+    const user = await currentUser();
+    if (!user) {
+      return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
+    const userId = user.id;
 
     // Get user from database
-    const user = await prisma.user.findUnique({
+    const userFromDb = await prisma.user.findUnique({
       where: { clerkId: userId },
       select: {
         id: true,
@@ -22,21 +23,16 @@ export async function GET() {
       },
     });
 
-    if (!user) {
+    if (!userFromDb) {
       // If user doesn't exist in our DB, create them
-      const clerkUser = await currentUser();
-      if (!clerkUser) {
-        return new NextResponse('User not found', { status: 404 });
-      }
-
-      const primaryEmail = clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)?.emailAddress || 
-                          clerkUser.emailAddresses[0]?.emailAddress || null;
-      const displayName = clerkUser.username || 
-                         [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || 
+      const primaryEmail = user.emailAddresses.find((e) => e.id === user.primaryEmailAddressId)?.emailAddress || 
+                          user.emailAddresses[0]?.emailAddress || null;
+      const displayName = user.username || 
+                         [user.firstName, user.lastName].filter(Boolean).join(" ") || 
                          null;
       
       // Generate username
-      const baseRaw = clerkUser.username || 
+      const baseRaw = user.username || 
                      (primaryEmail ? primaryEmail.split("@")[0] : "") || 
                      displayName || 
                      "user";
@@ -48,7 +44,7 @@ export async function GET() {
           username,
           name: displayName,
           email: primaryEmail,
-          image: clerkUser.imageUrl,
+          image: user.imageUrl,
         },
         select: {
           id: true,
@@ -63,7 +59,7 @@ export async function GET() {
       return NextResponse.json(newUser);
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json(userFromDb);
   } catch (error) {
     console.error('[AUTH_ME]', error);
     return new NextResponse('Internal Error', { status: 500 });

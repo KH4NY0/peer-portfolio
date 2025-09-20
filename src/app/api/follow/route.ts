@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { getAuth } from '@clerk/nextjs/server';
+import { updateBadgesForUser } from '@/lib/achievements';
 
 async function getUsers(followerUsername: string, targetUsername: string) {
   const [follower, target] = await Promise.all([
@@ -42,6 +44,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+  
   try {
     const body = await req.json();
     const followerUsername = body?.followerUsername;
@@ -57,6 +64,8 @@ export async function POST(req: NextRequest) {
       create: { followerId: follower.id, followingId: target.id },
     });
 
+    await updateBadgesForUser(userId);
+
     const [followers, following] = await Promise.all([
       prisma.follow.count({ where: { followingId: target.id } }),
       prisma.follow.count({ where: { followerId: target.id } }),
@@ -69,6 +78,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+  
   try {
     const body = await req.json();
     const followerUsername = body?.followerUsername;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuth } from '@clerk/nextjs/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
@@ -35,6 +36,11 @@ function extFromMime(mime: string | undefined) {
 }
 
 export async function POST(req: NextRequest) {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
   try {
     const formData = await req.formData();
     const files = formData.getAll('file');

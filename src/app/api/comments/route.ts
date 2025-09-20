@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { updateBadgesForUser } from '@/lib/achievements';
+import { getAuth } from '@clerk/nextjs/server';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -26,6 +27,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const { reviewId, authorUsername, authorName, content, parentId } = body || {};

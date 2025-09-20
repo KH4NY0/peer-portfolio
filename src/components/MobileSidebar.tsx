@@ -14,9 +14,10 @@ const SidebarContent = dynamic(() => import('./SidebarContent'), {
 interface MobileSidebarProps {
   userId: string | null;
   username: string | null;
+  signOut: () => void;
 }
 
-export default function MobileSidebar({ userId, username }: MobileSidebarProps) {
+export default function MobileSidebar({ userId, username, signOut }: MobileSidebarProps) {
   const [open, setOpen] = useState(false);
 
   // Prevent body scroll when drawer is open
@@ -54,6 +55,8 @@ export default function MobileSidebar({ userId, username }: MobileSidebarProps) 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  const onNavigate = () => setOpen(false);
+
   return (
     <div className="md:hidden">
       {/* Mobile menu button */}
@@ -90,7 +93,8 @@ export default function MobileSidebar({ userId, username }: MobileSidebarProps) 
             <SidebarContent 
               userId={userId} 
               username={username} 
-              onNavigate={() => setOpen(false)} 
+              signOut={signOut}
+              onNavigate={onNavigate} 
             />
           </div>
         </div>

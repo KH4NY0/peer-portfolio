@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { updateBadgesForUser } from '@/lib/achievements';
+import { getAuth } from '@clerk/nextjs/server';
 
 function clampRating(n: any) {
   const num = Number(n);
@@ -35,6 +36,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const {
@@ -124,6 +130,9 @@ export async function POST(req: NextRequest) {
 
     // Check and award badges based on updated score
     await updateBadgesForUser(reviewer.id);
+
+    // Add badge update after review
+    await updateBadgesForUser(userId);
 
     return NextResponse.json({ review }, { status: 201 });
   } catch (err) {
